@@ -38,6 +38,8 @@
 #	include <string>
 #endif
 
+#include <type_traits>
+
 // Macro for deprecated features
 #ifndef PUGIXML_DEPRECATED
 #	if defined(__GNUC__)
@@ -491,6 +493,19 @@ namespace pugi
 		xml_node operator[](const char_t* name_);
 		xml_node& operator=(const char_t* rhs);
 
+	#ifndef PUGIXML_NO_STL
+		template <typename T,
+				 typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+		xml_node& operator=(const T& rhs)
+		{
+			xml_node node = append_child(node_pcdata);
+
+			node.set_value(rhs);
+			return *this;
+		}
+
+	#endif
+
 		// Check if node is empty.
 		bool empty() const;
 
@@ -543,6 +558,21 @@ namespace pugi
 		// Set node name/value (returns false if node is empty, there is not enough memory, or node can not have name/value)
 		bool set_name(const char_t* rhs);
 		bool set_value(const char_t* rhs);
+		bool set_value(const bool rhs);
+
+	#ifndef PUGIXML_NO_STL
+		template <typename T,
+				 typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
+		bool set_value(const T& rhs)
+		{
+#	ifdef PUGIXML_WCHAR_MODE
+			const string_t& _str = std::to_wstring(rhs);
+#	else
+			const string_t& _str = std::to_string(rhs);
+#	endif
+			return set_value(_str.c_str());
+		}
+	#endif
 
 		// Add attribute with specified name. Returns added attribute, or empty attribute on errors.
 		xml_attribute append_attribute(const char_t* name);
